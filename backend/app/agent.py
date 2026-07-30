@@ -96,6 +96,25 @@ just call the tool. Only write prose AFTER you have tool results."""
 # Tools
 # ---------------------------------------------------------------------------
 
+_MAX_TOOL_CHARS = 30000  # keep tool results from blowing the model context
+
+
+def _strip_embeddings(obj):
+    """Recursively drop bulky vector fields from tool results."""
+    if isinstance(obj, dict):
+        return {k: _strip_embeddings(v) for k, v in obj.items() if k != "embedding"}
+    if isinstance(obj, list):
+        return [_strip_embeddings(x) for x in obj]
+    return obj
+
+
+def _tool_json(results) -> str:
+    out = json.dumps(_strip_embeddings(results), default=str)
+    if len(out) > _MAX_TOOL_CHARS:
+        out = out[:_MAX_TOOL_CHARS] + '... [truncated — narrow the query, e.g. RETURN specific properties instead of whole nodes]"'
+    return out
+
+
 @tool
 def search_video_moments(query: str) -> str:
     """Semantic search for the video moments (segments) most relevant to a natural-language query. Use for "find the moment where..." questions."""
@@ -105,7 +124,7 @@ def search_video_moments(query: str) -> str:
     except Exception as e:
         return json.dumps({"error": f"embedding failed: {e}"})
     results = _run_sync(segment_vector_search(vec, top_k=8))
-    return json.dumps(results, default=str)
+    return _tool_json(results)
 
 
 @tool
@@ -121,7 +140,7 @@ def explore_graph(name: str) -> str:
     LIMIT 60
     """
     results = _run_sync(execute_cypher(cypher, {"name": name}, tool_name="explore_graph"))
-    return json.dumps(results, default=str)
+    return _tool_json(results)
 
 
 @tool
@@ -156,7 +175,7 @@ def run_cypher(query: str, parameters: str = "{}") -> str:
         return json.dumps({"error": "Invalid JSON parameters"})
     try:
         result = _run_sync(execute_cypher(query, params, tool_name="run_cypher"))
-        return json.dumps(result, default=str)
+        return _tool_json(result)
     except Exception as e:
         return json.dumps({"error": f"Cypher query failed: {e}"})
 
