@@ -125,7 +125,7 @@ export default function Home() {
       <Flex bg="gray.900" color="white" px={6} py={3} justify="space-between" align="center">
         <Box>
           <Heading size="md">
-🎬 {DOMAIN.name}
+🚀 {DOMAIN.name}
           </Heading>
           <Text fontSize="sm" color="gray.400">
             {DOMAIN.tagline}

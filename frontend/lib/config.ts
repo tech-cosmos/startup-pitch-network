@@ -1,13 +1,13 @@
 /**
- * Domain configuration for the Video Context Graph
+ * Domain configuration for the Startup Pitch Network
  */
 
 export const DOMAIN = {
   id: "video-context-graph",
-  name: "Video Context Graph",
+  name: "Startup Pitch Network",
   description:
-    "Video understanding as a knowledge graph — TwelveLabs extracts what is shown, said, and written per segment; Neo4j merges the same entities across videos.",
-  tagline: "Video is evidence",
+    "An agent that watches YC Demo Day pitches and builds a Neo4j context graph — startups, founders, problems, technologies, competitors, and how it all shifted batch over batch.",
+  tagline: "62 pitches. Ten years of Demo Days. One graph.",
 };
 
 export const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
@@ -15,22 +15,34 @@ export const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:800
 export const NODE_COLORS: Record<string, string> = {
   Video: "#8b5cf6",
   Segment: "#0ea5e9",
+  Startup: "#f97316",
+  Founder: "#22c55e",
+  Problem: "#ef4444",
+  ProblemSpace: "#dc2626",
+  Technology: "#3b82f6",
+  Industry: "#a855f7",
+  CustomerSegment: "#14b8a6",
+  Claim: "#eab308",
   Entity: "#f59e0b",
   Topic: "#10b981",
-  Person: "#22c55e",
-  Organization: "#3b82f6",
-  Location: "#a855f7",
-  Object: "#eab308",
 };
 
 export const NODE_SIZES: Record<string, number> = {
-  Video: 34,
-  Segment: 20,
+  Video: 30,
+  Segment: 16,
+  Startup: 36,
+  Founder: 22,
+  Problem: 26,
+  ProblemSpace: 32,
+  Technology: 24,
+  Industry: 24,
+  CustomerSegment: 22,
+  Claim: 18,
   Entity: 22,
   Topic: 22,
 };
 
-export const DEFAULT_CYPHER = `MATCH (v:Video)-[r:HAS_SEGMENT]->(s:Segment) RETURN v, r, s LIMIT 100`;
+export const DEFAULT_CYPHER = `MATCH (s:Startup)-[r:SOLVES]->(p:Problem) RETURN s, r, p LIMIT 150`;
 
 export const SCHEMA_NODE_SIZE = 30;
 export const SCHEMA_REL_COLOR = "#94a3b8";
@@ -46,24 +58,24 @@ export interface DemoScenario {
 
 export const DEMO_SCENARIOS: DemoScenario[] = [
   {
-    name: "Explore",
+    name: "Market map",
     prompts: [
-      "What videos do we have and what are they about?",
-      "Show me the graph around the rabbit",
+      "Which startups are competing with each other, and on what problem?",
+      "Show me the healthcare market map",
     ],
   },
   {
-    name: "Find a moment",
+    name: "Evidence",
     prompts: [
-      "Find the moment where a butterfly lands on the rabbit",
-      "Where does the rabbit eat an apple?",
+      "List every traction claim Basis made, with timestamps",
+      "Which startup claimed the biggest market size, and when did they say it?",
     ],
   },
   {
-    name: "Cross-video",
+    name: "Trends",
     prompts: [
-      "Which entities appear in more than one video?",
-      "What connects the two clips to each other?",
+      "How did what founders build change after ChatGPT?",
+      "Which founders should talk to each other, and why?",
     ],
   },
 ];

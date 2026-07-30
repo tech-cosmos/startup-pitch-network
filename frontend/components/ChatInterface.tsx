@@ -465,7 +465,7 @@ export function ChatInterface({ onGraphUpdate, externalInput, onExternalInputCon
         <Flex direction="column" flex={1} justify="center" px={4} py={6}>
           <VStack gap={4}>
             <Text fontSize="lg" fontWeight="medium" color="gray.700">
-🎬 Ask about your videos
+🚀 Ask about the YC pitch universe
             </Text>
             <HStack gap={1} flexShrink={0} color="gray.500" fontSize="xs" fontWeight="medium">
               <Sparkles size={14} />
@@ -677,7 +677,7 @@ export function ChatInterface({ onGraphUpdate, externalInput, onExternalInputCon
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Ask about your videos..."
+            placeholder="Ask about startups, founders, problems, competitors, trends..."
             border="none"
             _focus={{ boxShadow: "none" }}
             resize="none"
