@@ -34,3 +34,22 @@ FOR (n:Segment) ON EACH [n.summary, n.on_screen_text, n.transcript];
 // FOR (n:Segment) ON (n.embedding)
 // OPTIONS { indexConfig: {
 //   `vector.dimensions`: <DIM>, `vector.similarity_function`: 'cosine' } };
+
+// --- Startup Pitch Network domain ------------------------------------------
+// Hackathon delta: typed startup ontology on top of the Video/Segment backbone.
+// All nodes keyed by normalized name; canonicalize.py merges near-duplicates
+// (e.g. "AI scribe for vets" vs "clinical documentation for veterinarians").
+CREATE CONSTRAINT startup_key_unique IF NOT EXISTS FOR (n:Startup) REQUIRE n.key IS UNIQUE;
+CREATE CONSTRAINT founder_key_unique IF NOT EXISTS FOR (n:Founder) REQUIRE n.key IS UNIQUE;
+CREATE CONSTRAINT problem_key_unique IF NOT EXISTS FOR (n:Problem) REQUIRE n.key IS UNIQUE;
+CREATE CONSTRAINT technology_key_unique IF NOT EXISTS FOR (n:Technology) REQUIRE n.key IS UNIQUE;
+CREATE CONSTRAINT industry_key_unique IF NOT EXISTS FOR (n:Industry) REQUIRE n.key IS UNIQUE;
+CREATE CONSTRAINT customersegment_key_unique IF NOT EXISTS FOR (n:CustomerSegment) REQUIRE n.key IS UNIQUE;
+
+CREATE INDEX startup_name IF NOT EXISTS FOR (n:Startup) ON (n.name);
+CREATE INDEX problem_statement IF NOT EXISTS FOR (n:Problem) ON (n.statement);
+
+// Full-text over the startup layer for keyword lookup from the agent
+CREATE FULLTEXT INDEX startup_fulltext IF NOT EXISTS
+FOR (n:Startup|Problem|Technology|Industry|CustomerSegment)
+ON EACH [n.name, n.statement, n.tagline];

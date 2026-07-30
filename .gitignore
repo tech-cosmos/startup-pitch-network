@@ -28,3 +28,8 @@ Thumbs.db
 # Data
 data/documents/*.json
 data/documents/*.txt
+
+# Hackathon video corpora (too large for git; re-fetch via scripts)
+data/videos/pitches/
+data/videos/pitches_s21/
+data/videos/pitches_mixed/

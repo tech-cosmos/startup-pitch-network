@@ -37,13 +37,35 @@ def _run_sync(coro):
     return asyncio.run(coro)
 
 
-SYSTEM_PROMPT = """You are a video intelligence assistant. You answer questions over a Neo4j
-knowledge graph built from videos analyzed by TwelveLabs. The graph contains:
-- Video nodes (id, title, url, duration_sec, summary)
+SYSTEM_PROMPT = """You are the Startup Pitch Network agent. You answer questions over a Neo4j
+knowledge graph built from startup pitch videos (YC Demo Day) analyzed by TwelveLabs.
+
+Video backbone:
+- Video nodes (id, title = startup name, url, duration_sec, summary)
 - Segment nodes (time-coded: start_sec, end_sec, summary, on_screen_text, transcript)
-- Entity and Topic nodes that are SHARED across videos (the same entity in two videos is ONE node)
-Relationships: (Video)-[:HAS_SEGMENT]->(Segment), (Segment)-[:NEXT]->(Segment),
-(Segment)-[:MENTIONS]->(Entity), (Segment)-[:ABOUT]->(Topic).
+- (Video)-[:HAS_SEGMENT]->(Segment), (Segment)-[:NEXT]->(Segment), (Segment)-[:MENTIONS]->(Startup)
+
+Startup ontology (nodes are SHARED across videos — canonicalized so the same
+problem/technology described differently in two pitches is ONE node):
+- (:Startup {name, tagline, solution, batch})-[:PITCHED_IN]->(:Video {batch})
+  // batch = YC batch, e.g. 'S19', 'S21', 'W24' — use it for ANY temporal/trend question,
+  // e.g. "how have products changed": compare Technology/Problem/Industry distributions
+  // across batches: MATCH (s:Startup)-[:USES]->(t:Technology) RETURN s.batch, t.name, count(*)
+- (:Founder {name, role})-[:FOUNDED]->(:Startup)
+- (:Startup)-[:SOLVES]->(:Problem {statement, aliases})
+- (:Startup)-[:USES]->(:Technology)
+- (:Startup)-[:IN_INDUSTRY]->(:Industry)
+- (:Startup)-[:TARGETS]->(:CustomerSegment)
+- (:Startup)-[:CLAIMS]->(:Claim {text, kind, approx_sec, video_id})  // traction/revenue/market claims with timestamps
+Derived edges: (:Startup)-[:COMPETES_WITH {via}]->(:Startup)  (shared Problem),
+(:Startup)-[:SHARES_STACK_WITH {via}]->(:Startup)  (shared Technology).
+
+Typical questions and the traversal to use (via run_cypher):
+- "who competes with X / on what problem" -> COMPETES_WITH edges or shared (:Problem) hubs
+- "market map" -> MATCH (s:Startup)-[r:SOLVES]->(p:Problem) RETURN s, r, p
+- "adjacent startups" -> shared Industry, different Problem, no COMPETES_WITH
+- "traction/revenue claims" -> (:Startup)-[:CLAIMS]->(:Claim), cite claim.approx_sec as the timestamp
+- "founders who should meet" -> Founder->Startup->Problem<-Startup<-Founder paths
 
 Tool selection:
 - "find the moment where..." / semantic recall -> search_video_moments
@@ -88,11 +110,12 @@ def search_video_moments(query: str) -> str:
 
 @tool
 def explore_graph(name: str) -> str:
-    """Explore everything involving an entity, topic, or video by name — across all videos. Returns the connected subgraph."""
+    """Explore everything involving a startup, founder, problem, technology, industry, customer segment, or video by name — across all videos. Returns the connected subgraph."""
     cypher = """
     MATCH (n)
-    WHERE (n:Entity OR n:Topic OR n:Video)
-      AND toLower(coalesce(n.name, n.title)) CONTAINS toLower($name)
+    WHERE (n:Entity OR n:Topic OR n:Video OR n:Startup OR n:Founder OR n:Problem
+           OR n:Technology OR n:Industry OR n:CustomerSegment)
+      AND toLower(coalesce(n.name, n.statement, n.title)) CONTAINS toLower($name)
     OPTIONAL MATCH (n)-[r]-(m)
     RETURN n, r, m
     LIMIT 60
@@ -145,13 +168,15 @@ def get_graph_schema() -> str:
     return json.dumps(result, default=str)
 
 
-model = OpenAIResponsesModel(
+# Chat Completions instead of the Responses API: the OpenAI-compatible gateway
+# behind this key 400s on Responses-API replay of agentic (tool-use) history.
+# Extraction (single-shot responses.parse) keeps using Responses directly.
+from strands.models.openai import OpenAIModel  # noqa: E402
+
+model = OpenAIModel(
     client_args={"api_key": os.environ.get("OPENAI_API_KEY", settings.openai_api_key)},
     model_id=settings.openai_model,
-    params={
-        "reasoning": {"effort": settings.openai_reasoning_effort},
-        "max_output_tokens": 2000,
-    },
+    params={"max_tokens": 2000},
 )
 
 agent = Agent(

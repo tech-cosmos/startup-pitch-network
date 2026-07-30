@@ -41,6 +41,19 @@ schema:
 seed:
 	cd backend && uv run python scripts/ingest.py $(VIDEOS)
 
+# --- Startup Pitch Network (hackathon delta) ---
+# Download the YC demo day playlist into data/videos/pitches/
+fetch-pitches:
+	bash backend/scripts/fetch_pitches.sh $(PLAYLIST)
+
+# Ingest pitch videos (defaults to data/videos/pitches/*.mp4)
+seed-pitches:
+	cd backend && uv run python scripts/ingest_pitch.py $(VIDEOS)
+
+# Pass 2: merge duplicate Problems/Technologies + derive COMPETES_WITH edges
+canonicalize:
+	cd backend && uv run python scripts/canonicalize.py
+
 # Reset Neo4j data (drop and recreate)
 reset:
 	cd backend && uv run python -c "from app.context_graph_client import reset_database; import asyncio; asyncio.run(reset_database())"
